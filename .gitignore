@@ -29,6 +29,10 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # IntelliJ based IDEs
 .idea
+.agents
+.claude
+.cursor
+.devin
 
 # Finder (MacOS) folder config
 .DS_Store
