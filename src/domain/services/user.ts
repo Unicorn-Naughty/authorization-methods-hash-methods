@@ -2,7 +2,7 @@
 import { ICreateUserData } from "../../application/dtos";
 import { IUserRepository } from "../../application/ports/repositories";
 
-export class IUserService {
+export class UserService {
   constructor(private repo: IUserRepository){}
 
   async create(d: ICreateUserData){

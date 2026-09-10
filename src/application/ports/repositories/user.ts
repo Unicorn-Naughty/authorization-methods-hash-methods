@@ -1,4 +1,4 @@
-import { IUser } from "../../../domain/entities";
+import { IUser, IUserWithPassword } from "../../../domain/entities";
 
 export interface IUserRepository {
   create(data: {
@@ -6,7 +6,7 @@ export interface IUserRepository {
     password: string;
   }): Promise<IUser>;
 
-  findByEmail(email: string): Promise<IUser | null>;
+  findByEmail(email: string): Promise<IUserWithPassword | null>;
 
   findById(id: string): Promise<IUser | null>;
 

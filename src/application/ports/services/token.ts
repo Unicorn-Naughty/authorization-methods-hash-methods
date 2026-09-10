@@ -3,4 +3,5 @@ export interface ITokenService {
   generateRefreshToken(userId: string): Promise<string>;
   verifyAccessToken(token: string): string | null;
   verifyRefreshToken(token: string): Promise<string | null>;
+  revokeRefreshToken(token: string): Promise<void>;
 }

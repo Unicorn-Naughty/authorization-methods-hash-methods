@@ -6,6 +6,7 @@ export interface ICreatePostData {
 
 export interface IUpdatePostData {
   id: string;
+  userId: string;
   title: string;
   text: string;
 }
