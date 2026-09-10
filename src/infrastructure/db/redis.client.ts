@@ -6,4 +6,4 @@ export const redis = createClient({
 
 redis.on("error", (err) => console.error("Redis error:", err));
 
-await redis.connect();
+export type RedisClient = typeof redis;

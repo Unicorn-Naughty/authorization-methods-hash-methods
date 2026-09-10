@@ -15,7 +15,7 @@ interface RoutesDeps {
 export function createRoutes(deps: RoutesDeps): Router {
   const router = Router();
 
-  const authMw = authMiddleware(deps.tokenService); 
+  const authMw = authMiddleware(deps.tokenService);
 
   router.use("/auth", createAuthRouter(deps.authController));
   router.use("/posts", createPostRouter(deps.postController, authMw));

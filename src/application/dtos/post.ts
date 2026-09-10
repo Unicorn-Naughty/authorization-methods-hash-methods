@@ -10,4 +10,3 @@ export interface IUpdatePostData {
   title: string;
   text: string;
 }
-

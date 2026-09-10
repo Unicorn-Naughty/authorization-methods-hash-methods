@@ -1,18 +1,17 @@
-import { IUser } from "../../domain/entities"
+import { IUser } from "../../domain/entities";
 
 export interface IRegisterData {
-  email: string
-  password: string
+  email: string;
+  password: string;
 }
 
 export interface ILoginData {
-  email: string
-  password: string
+  email: string;
+  password: string;
 }
 
-export interface IAuthResult  {
-  accessToken: string,
-  refreshToken: string
-  user: IUser
+export interface IAuthResult {
+  accessToken: string;
+  refreshToken: string;
+  user: IUser;
 }
-
