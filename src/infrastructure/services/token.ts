@@ -96,7 +96,7 @@ export class TokenService implements ITokenService {
       expiresIn: "7d",
     });
 
-    return { refreshToken: newToken, userId, familyId, jti: newJti };
+    return { refreshToken: newToken, userId};
   }
 
   verifyAccessToken(token: string): string | null {

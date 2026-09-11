@@ -7,8 +7,6 @@ export interface IRefreshTokenPayload {
 export interface IRotatedRefreshToken {
   refreshToken: string;
   userId: string;
-  familyId: string;
-  jti: string;
 }
 
 export interface ITokenService {
