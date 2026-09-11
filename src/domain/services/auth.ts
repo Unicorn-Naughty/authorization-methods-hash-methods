@@ -19,8 +19,11 @@ export class AuthService {
 
     const user = await this.userRepo.create({ ...data, password: hashedPass });
 
+    const familyId = crypto.randomUUID();
+    const jti = crypto.randomUUID();
+
     const accessToken = this.tokenService.generateAccessToken(user.id);
-    const refreshToken = await this.tokenService.generateRefreshToken(user.id);
+    const refreshToken = await this.tokenService.generateRefreshToken(user.id, jti, familyId);
 
     return { accessToken, refreshToken, user };
   }
@@ -34,27 +37,29 @@ export class AuthService {
 
     if (!checkCompare) throw new AppError("invalid credentials", 401);
 
+    const familyId = crypto.randomUUID();
+    const jti = crypto.randomUUID();
+
     const accessToken = this.tokenService.generateAccessToken(user.id);
-    const refreshToken = await this.tokenService.generateRefreshToken(user.id);
+    const refreshToken = await this.tokenService.generateRefreshToken(user.id, jti, familyId);
 
     return { accessToken, refreshToken, user: { id: user.id, email: user.email } };
   }
 
   async refresh(refreshToken: string) {
-    const userId = await this.tokenService.verifyRefreshToken(refreshToken);
+    const rotated = await this.tokenService.rotateRefreshToken(refreshToken);
 
-    if (!userId) throw new AppError("invalid refresh token", 401);
+    if (!rotated) throw new AppError("invalid refresh token", 401);
 
-    const user = await this.userRepo.findById(userId);
+    const user = await this.userRepo.findById(rotated.userId);
 
     if (!user) throw new AppError("User not found", 404);
 
     const aToken = this.tokenService.generateAccessToken(user.id);
-    const rToken = await this.tokenService.generateRefreshToken(user.id);
 
     return {
       accessToken: aToken,
-      refreshToken: rToken,
+      refreshToken: rotated.refreshToken,
     };
   }
 
