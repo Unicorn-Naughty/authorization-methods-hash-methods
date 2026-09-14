@@ -23,7 +23,7 @@ export class PostController {
     res.status(200).json(data);
   });
 
-  findAll = createHandler(async (req, res) => {
+  findAll = createHandler(async (_req, res) => {
     const data = await this.postService.findAll();
     res.status(200).json(data);
   });
