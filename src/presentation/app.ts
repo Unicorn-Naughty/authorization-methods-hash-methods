@@ -1,7 +1,7 @@
 import express, { type Express } from "express";
 
-import { PrismaPostRepository, PrismaUserRepository } from "../infrastructure/db/repositories";
-import { PostService } from "../domain/services";
+import { PrismaAccountRepository, PrismaPostRepository, PrismaUserRepository } from "../infrastructure/db/repositories";
+import { AuthService, OauthService, PostService } from "../domain/services";
 import { BcryptHashService } from "../infrastructure/services/hash";
 import { TokenService } from "../infrastructure/services/token";
 import { AuthController } from "./controllers";
@@ -16,10 +16,7 @@ import cors from "cors";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import { swaggerOptions } from "./http/swagger";
-import { OauthService } from "../domain/services/authorization/oauth";
-import { PrismaAccountRepository } from "../infrastructure/db/repositories/account";
 import { GithubOauthService } from "../infrastructure/services/oauth/github";
-import { AuthService } from "../domain/services/authorization";
 
 export async function createApp(): Promise<Express> {
   if (!redis.isOpen) {

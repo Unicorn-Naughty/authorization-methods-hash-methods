@@ -1,7 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { ILoginData, IRegisterData } from "../../application/dtos";
-import { AuthService } from "../../domain/services/authorization";
-import { OauthService } from "../../domain/services/authorization/oauth";
+import { AuthService, OauthService } from "../../domain/services/authorization";
 import { RedisClient } from "../../infrastructure/db/redis.client";
 import { createHandler } from "../utils/create-handler";
 import { GithubOauthService } from "../../infrastructure/services/oauth/github";

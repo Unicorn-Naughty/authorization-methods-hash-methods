@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { ICreateAccountData, IFindAccountData } from "../../../application/dtos";
-import { IAccountRepository } from "../../../application/ports/repositories/account";
+import { IAccountRepository } from "../../../application/ports/repositories";
 import { IAccount } from "../../../domain/entities";
 
 export class PrismaAccountRepository implements IAccountRepository {

@@ -7,8 +7,8 @@ REST API на Bun, Express 5, Prisma (PostgreSQL) и Redis. Access-токен в
 - Runtime: [Bun](https://bun.com)
 - HTTP: Express 5, helmet, cors, cookie-parser, express-rate-limit
 - ORM: Prisma 6, PostgreSQL
-- Redis: хранение и ротация refresh-токенов
-- Auth: JWT (`jsonwebtoken`), пароли через bcrypt
+- Redis: refresh-токены и OAuth state
+- Auth: JWT (`jsonwebtoken`), пароли через bcrypt, GitHub OAuth (PKCE)
 - Валидация: Zod 4
 - Документация: swagger-jsdoc + swagger-ui-express
 - Язык: TypeScript 5
@@ -20,13 +20,13 @@ REST API на Bun, Express 5, Prisma (PostgreSQL) и Redis. Access-токен в
 src/
 ├── domain/              # сущности и сервисы, без Express/Prisma/Redis
 │   ├── entities/
-│   └── services/        # AuthService, PostService
+│   └── services/        # AuthService, OauthService, PostService
 ├── application/         # DTO и порты
 │   ├── dtos/
 │   └── ports/
 ├── infrastructure/      # реализации портов
-│   ├── db/              # Prisma, Redis, репозитории
-│   └── services/        # BcryptHashService, TokenService
+│   ├── db/              # Prisma, Redis, репозитории user/post/account
+│   └── services/        # BcryptHashService, TokenService, GithubOauthService
 ├── presentation/        # HTTP
 │   ├── controllers/
 │   ├── http/            # Zod-схемы запросов, swagger definition
@@ -68,9 +68,15 @@ REDIS_URL="redis://localhost:6379"
 
 JWT_ACCESS_SECRET="change_me_access"
 JWT_REFRESH_SECRET="change_me_refresh"
+
+GITHUB_CLIENT_ID=""
+GITHUB_CLIENT_SECRET=""
+GITHUB_CALLBACK_URL="http://localhost:3000/api/auth/oauth/github/callback"
 ```
 
 `JWT_ACCESS_SECRET` и `JWT_REFRESH_SECRET` должны быть длинными случайными строками.
+
+Для GitHub OAuth создай приложение с callback `GITHUB_CALLBACK_URL`. Scope: `read:user user:email`.
 
 ## Запуск инфраструктуры
 
@@ -119,22 +125,28 @@ CORS разрешён для `http://localhost:5173` с `credentials: true`.
 
 ### Auth (`/api/auth`)
 
-| Метод | Путь        | Тело                  | Ответ                                              |
-| ----- | ----------- | --------------------- | -------------------------------------------------- |
-| POST  | `/register` | `{ email, password }` | 201 `{ accessToken, user }`, cookie `refreshToken` |
-| POST  | `/login`    | `{ email, password }` | 201 `{ accessToken, user }`, cookie `refreshToken` |
-| POST  | `/refresh`  | `{ refreshToken }`    | 201 `{ accessToken }`, cookie обновляется          |
-| POST  | `/logout`   | cookie `refreshToken` | 204, cookie сбрасывается                           |
+| Метод | Путь                     | Тело                  | Ответ                                              |
+| ----- | ------------------------ | --------------------- | -------------------------------------------------- |
+| POST  | `/register`              | `{ email, password }` | 201 `{ accessToken, user }`, cookie `refreshToken` |
+| POST  | `/login`                 | `{ email, password }` | 201 `{ accessToken, user }`, cookie `refreshToken` |
+| POST  | `/refresh`               | `{ refreshToken }`    | 201 `{ accessToken }`, cookie обновляется          |
+| POST  | `/logout`                | cookie `refreshToken` | 204, cookie сбрасывается                           |
+| GET   | `/oauth/github/login`    | —                     | 302 на GitHub authorize                            |
+| GET   | `/oauth/github/callback` | query `code`, `state` | 201 `{ accessToken, user }`, cookie `refreshToken` |
 
-Пароль: 10–50 символов. Email должен быть валидным.
+Пароль: 10–50 символов. Email должен быть валидным. У пользователя, созданного через OAuth, пароля нет (`password` в Prisma опционален).
 
 Cookie `refreshToken`: httpOnly, SameSite=Lax, Path=`/auth`, 7 дней. `Secure` только при `NODE_ENV=production`.
 
-Лимиты (окно 10 минут): register 10, login 10, refresh 20 запросов с одного IP.
+Лимиты (окно 10 минут): register 10, login 10, refresh 20, GitHub OAuth login 10, callback 10 запросов с одного IP.
 
 Access-токен: `Authorization: Bearer <accessToken>`, TTL 15 минут.
 
 Refresh в Redis: ключи `refresh_token:<user_id>:<jti>` и `family:<user_id>:<familyId>`, TTL 7 дней. Ротация выдаёт новый jti в той же family. Повторное использование старого токена (не grace) гасит family.
+
+GitHub OAuth идёт через PKCE S256. `GET /oauth/github/login` кладёт `code_verifier` в Redis по `state` на 10 минут и редиректит на GitHub. Callback забирает verifier через `GETDEL`, обменивает `code` на аккаунт GitHub и выдаёт токены.
+
+Если пара `(provider, provider_account_id)` уже есть, логинится этот пользователь. Если нет, ищется user по email GitHub: найденный линкуется через `Account`, иначе создаётся новый user без пароля. Email берётся из профиля, иначе из `/user/emails` (primary и verified, иначе любой verified). Без email ответ 400. Невалидный `state` или отказ GitHub: 401.
 
 ### Posts (`/api/posts`)
 
