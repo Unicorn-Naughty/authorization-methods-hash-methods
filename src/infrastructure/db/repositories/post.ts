@@ -1,23 +1,25 @@
+import { PrismaClient } from "@prisma/client";
 import { ICreatePostData, IUpdatePostData } from "../../../application/dtos";
 import { IPostRepository } from "../../../application/ports/repositories";
 import { IPost } from "../../../domain/entities";
-import { db } from "../prisma.client";
 
 export class PrismaPostRepository implements IPostRepository {
+  constructor(private db: PrismaClient) {}
+
   create(data: ICreatePostData): Promise<IPost> {
-    return db.post.create({ data });
+    return this.db.post.create({ data });
   }
   findById(id: string): Promise<IPost | null> {
-    return db.post.findFirst({ where: { id } });
+    return this.db.post.findFirst({ where: { id } });
   }
   findAll(): Promise<IPost[]> {
-    return db.post.findMany();
+    return this.db.post.findMany();
   }
   async update(data: IUpdatePostData): Promise<IPost> {
     const { id, ...rest } = data;
-    return db.post.update({ where: { id }, data: rest });
+    return this.db.post.update({ where: { id }, data: rest });
   }
   async delete(id: string): Promise<void> {
-    await db.post.delete({ where: { id } });
+    await this.db.post.delete({ where: { id } });
   }
 }

@@ -1,12 +1,12 @@
 export interface ICreatePostData {
   title: string;
   text: string;
-  userId: string;
+  user_id: string;
 }
 
 export interface IUpdatePostData {
   id: string;
-  userId: string;
+  user_id: string;
   title: string;
   text: string;
 }

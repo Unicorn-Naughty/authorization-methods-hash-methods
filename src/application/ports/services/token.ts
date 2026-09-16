@@ -1,17 +1,17 @@
 export interface IRefreshTokenPayload {
-  userId: string;
+  user_id: string;
   familyId: string;
   jti: string;
 }
 
 export interface IRotatedRefreshToken {
   refreshToken: string;
-  userId: string;
+  user_id: string;
 }
 
 export interface ITokenService {
-  generateAccessToken(userId: string): string;
-  generateRefreshToken(userId: string, jti: string, familyId: string): Promise<string>;
+  generateAccessToken(user_id: string): string;
+  generateRefreshToken(user_id: string, jti: string, familyId: string): Promise<string>;
   verifyAccessToken(token: string): string | null;
   verifyRefreshToken(token: string): Promise<IRefreshTokenPayload | null>;
   rotateRefreshToken(token: string): Promise<IRotatedRefreshToken | null>;

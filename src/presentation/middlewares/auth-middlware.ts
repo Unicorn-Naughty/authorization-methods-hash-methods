@@ -10,12 +10,12 @@ export function authMiddleware(tokenService: ITokenService) {
     }
 
     const cleanedToken = token.slice(7);
-    const userId = tokenService.verifyAccessToken(cleanedToken);
-    if (!userId) {
+    const user_id = tokenService.verifyAccessToken(cleanedToken);
+    if (!user_id) {
       return next(new AppError("Unauthorized", 401));
     }
 
-    req.userId = userId;
+    req.user_id = user_id;
     return next();
   };
 }

@@ -1,7 +1,7 @@
-import { IRegisterData, IAuthResult, ILoginData } from "../../application/dtos";
-import { IUserRepository } from "../../application/ports/repositories";
-import { IHashService, ITokenService } from "../../application/ports/services";
-import { AppError } from "../../shared";
+import { IRegisterData, IAuthResult, ILoginData } from "../../../application/dtos";
+import { IUserRepository } from "../../../application/ports/repositories";
+import { IHashService, ITokenService } from "../../../application/ports/services";
+import { AppError } from "../../../shared";
 
 export class AuthService {
   constructor(
@@ -51,7 +51,7 @@ export class AuthService {
 
     if (!rotated) throw new AppError("invalid refresh token", 401);
 
-    const user = await this.userRepo.findById(rotated.userId);
+    const user = await this.userRepo.findById(rotated.user_id);
 
     if (!user) throw new AppError("User not found", 404);
 

@@ -5,14 +5,14 @@ export class PostController {
   constructor(private postService: PostService) {}
 
   create = createHandler<{ title: string; text: string }>(async (req, res) => {
-    const data = await this.postService.create({ ...req.body, userId: req.userId! });
+    const data = await this.postService.create({ ...req.body, user_id: req.user_id! });
     res.status(201).json(data);
   });
 
   update = createHandler<{ title: string; text: string }>(async (req, res) => {
     const data = await this.postService.update({
       ...req.body,
-      userId: req.userId!,
+      user_id: req.user_id!,
       id: req.params.id,
     });
     res.status(200).json(data);
@@ -29,7 +29,7 @@ export class PostController {
   });
 
   delete = createHandler(async (req, res) => {
-    await this.postService.delete(req.params.id, req.userId!);
+    await this.postService.delete(req.params.id, req.user_id!);
     res.status(204).send();
   });
 }

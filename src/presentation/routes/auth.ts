@@ -2,7 +2,7 @@ import { Router } from "express";
 import { AuthController } from "../controllers/auth-controller";
 import { credentialsRules } from "../http/schemas";
 import { validate } from "../middlewares/validate";
-import { loginLimiter, refreshLimiter, regLimiter } from "../middlewares/rate-limit";
+import { loginLimiter, oauthGithubLimiterCallback, oauthGithubLimiterLogin, refreshLimiter, regLimiter } from "../middlewares/rate-limit";
 
 export function createAuthRouter(controller: AuthController): Router {
   const router = Router();
@@ -124,8 +124,67 @@ export function createAuthRouter(controller: AuthController): Router {
    *     responses:
    *       204:
    *         $ref: '#/components/responses/NoContent'
+   *       429:
+   *         $ref: '#/components/responses/RateLimited'
    */
   router.post("/logout", controller.logout);
+
+  /**
+   * @openapi
+   * /api/auth/oauth/github/login:
+   *   get:
+   *     tags: [Auth]
+   *     summary: Start GitHub OAuth
+   *     responses:
+   *       302:
+   *         description: Redirect to GitHub authorize URL
+   *         headers:
+   *           Location:
+   *             schema:
+   *               type: string
+   *               format: uri
+   */
+  router.get("/oauth/github/login", oauthGithubLimiterLogin, controller.githubLogin);
+
+  /**
+   * @openapi
+   * /api/auth/oauth/github/callback:
+   *   get:
+   *     tags: [Auth]
+   *     summary: GitHub OAuth callback
+   *     parameters:
+   *       - in: query
+   *         name: code
+   *         schema:
+   *           type: string
+   *       - in: query
+   *         name: state
+   *         schema:
+   *           type: string
+   *       - in: query
+   *         name: error
+   *         schema:
+   *           type: string
+   *     responses:
+   *       201:
+   *         description: Logged in. Access token in body, refresh token in Set-Cookie.
+   *         headers:
+   *           Set-Cookie:
+   *             schema:
+   *               type: string
+   *             description: HttpOnly refreshToken cookie. Path=/auth, Max-Age=7 days.
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/AuthResponse'
+   *       400:
+   *         $ref: '#/components/responses/ValidationError'
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   *       429:
+   *         $ref: '#/components/responses/RateLimited'
+   */
+  router.get("/oauth/github/callback", oauthGithubLimiterCallback, controller.githubCallback);
 
   return router;
 }

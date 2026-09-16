@@ -10,9 +10,21 @@ datasource db {
 model User {
   id String @id @default(uuid())
   email String @unique
-  password String
+  password String? 
   posts Post[]
+  accounts Account[]
 }
+
+model Account {
+  id String @id @default(uuid())
+  provider String
+  provider_account_id String
+  user_id String
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  @@unique([provider, provider_account_id])
+}
+
 
 model Post {
   id String @id @default(uuid())
@@ -20,6 +32,7 @@ model Post {
   text String
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt 
-  userId String
-  user User @relation(fields: [userId], references: [id])
+  user_id String
+
+  user User @relation(fields: [user_id], references: [id])
 }

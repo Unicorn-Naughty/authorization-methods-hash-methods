@@ -82,14 +82,14 @@ export const swaggerOptions: swaggerJsdoc.OAS3Options = {
         },
         Post: {
           type: "object",
-          required: ["id", "title", "text", "created_at", "updated_at", "userId"],
+          required: ["id", "title", "text", "created_at", "updated_at", "user_id"],
           properties: {
             id: { type: "string", format: "uuid" },
             title: { type: "string" },
             text: { type: "string" },
             created_at: { type: "string", format: "date-time" },
             updated_at: { type: "string", format: "date-time" },
-            userId: { type: "string", format: "uuid" },
+            user_id: { type: "string", format: "uuid" },
           },
         },
         ErrorMessage: {

@@ -103,13 +103,13 @@ CORS разрешён для `http://localhost:5173` с `credentials: true`.
 
 ## Скрипты
 
-| Команда | Что делает |
-| --- | --- |
-| `bun run dev` | Watch-режим |
-| `bun run lint` | ESLint |
-| `bun run lint:fix` | ESLint с автоисправлением |
-| `bun run format` | Prettier |
-| `bun run format:check` | Проверка форматирования |
+| Команда                | Что делает                |
+| ---------------------- | ------------------------- |
+| `bun run dev`          | Watch-режим               |
+| `bun run lint`         | ESLint                    |
+| `bun run lint:fix`     | ESLint с автоисправлением |
+| `bun run format`       | Prettier                  |
+| `bun run format:check` | Проверка форматирования   |
 
 Типы: `bunx tsc --noEmit`.
 
@@ -119,12 +119,12 @@ CORS разрешён для `http://localhost:5173` с `credentials: true`.
 
 ### Auth (`/api/auth`)
 
-| Метод | Путь | Тело | Ответ |
-| --- | --- | --- | --- |
-| POST | `/register` | `{ email, password }` | 201 `{ accessToken, user }`, cookie `refreshToken` |
-| POST | `/login` | `{ email, password }` | 201 `{ accessToken, user }`, cookie `refreshToken` |
-| POST | `/refresh` | `{ refreshToken }` | 201 `{ accessToken }`, cookie обновляется |
-| POST | `/logout` | cookie `refreshToken` | 204, cookie сбрасывается |
+| Метод | Путь        | Тело                  | Ответ                                              |
+| ----- | ----------- | --------------------- | -------------------------------------------------- |
+| POST  | `/register` | `{ email, password }` | 201 `{ accessToken, user }`, cookie `refreshToken` |
+| POST  | `/login`    | `{ email, password }` | 201 `{ accessToken, user }`, cookie `refreshToken` |
+| POST  | `/refresh`  | `{ refreshToken }`    | 201 `{ accessToken }`, cookie обновляется          |
+| POST  | `/logout`   | cookie `refreshToken` | 204, cookie сбрасывается                           |
 
 Пароль: 10–50 символов. Email должен быть валидным.
 
@@ -134,17 +134,17 @@ Cookie `refreshToken`: httpOnly, SameSite=Lax, Path=`/auth`, 7 дней. `Secure
 
 Access-токен: `Authorization: Bearer <accessToken>`, TTL 15 минут.
 
-Refresh в Redis: ключи `refresh_token:<userId>:<jti>` и `family:<userId>:<familyId>`, TTL 7 дней. Ротация выдаёт новый jti в той же family. Повторное использование старого токена (не grace) гасит family.
+Refresh в Redis: ключи `refresh_token:<user_id>:<jti>` и `family:<user_id>:<familyId>`, TTL 7 дней. Ротация выдаёт новый jti в той же family. Повторное использование старого токена (не grace) гасит family.
 
 ### Posts (`/api/posts`)
 
-| Метод | Путь | Auth | Тело | Ответ |
-| --- | --- | --- | --- | --- |
-| GET | `/` | нет | — | 200 массив постов |
-| GET | `/:id` | нет | — | 200 пост или `null` |
-| POST | `/` | Bearer | `{ title, text }` | 201 пост |
-| PATCH | `/:id` | Bearer | `{ title?, text? }` | 200 пост |
-| DELETE | `/:id` | Bearer | — | 204 |
+| Метод  | Путь   | Auth   | Тело                | Ответ               |
+| ------ | ------ | ------ | ------------------- | ------------------- |
+| GET    | `/`    | нет    | —                   | 200 массив постов   |
+| GET    | `/:id` | нет    | —                   | 200 пост или `null` |
+| POST   | `/`    | Bearer | `{ title, text }`   | 201 пост            |
+| PATCH  | `/:id` | Bearer | `{ title?, text? }` | 200 пост            |
+| DELETE | `/:id` | Bearer | —                   | 204                 |
 
 `id` в пути: UUID. Title: 5–100 символов. Text: 90–1000. PATCH принимает любое поле опционально.
 

@@ -4,5 +4,5 @@ export interface IPost {
   text: string;
   created_at: Date;
   updated_at: Date;
-  userId: string;
+  user_id: string;
 }

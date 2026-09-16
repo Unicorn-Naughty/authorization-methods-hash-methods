@@ -1,7 +1,7 @@
 import express, { type Express } from "express";
 
 import { PrismaPostRepository, PrismaUserRepository } from "../infrastructure/db/repositories";
-import { AuthService, PostService } from "../domain/services";
+import { PostService } from "../domain/services";
 import { BcryptHashService } from "../infrastructure/services/hash";
 import { TokenService } from "../infrastructure/services/token";
 import { AuthController } from "./controllers";
@@ -16,6 +16,10 @@ import cors from "cors";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import { swaggerOptions } from "./http/swagger";
+import { OauthService } from "../domain/services/authorization/oauth";
+import { PrismaAccountRepository } from "../infrastructure/db/repositories/account";
+import { GithubOauthService } from "../infrastructure/services/oauth/github";
+import { AuthService } from "../domain/services/authorization";
 
 export async function createApp(): Promise<Express> {
   if (!redis.isOpen) {
@@ -25,15 +29,19 @@ export async function createApp(): Promise<Express> {
 
   const app = express();
 
-  const userRepo = new PrismaUserRepository();
-  const postRepo = new PrismaPostRepository();
+  const userRepo = new PrismaUserRepository(db);
+  const postRepo = new PrismaPostRepository(db);
+  const accountRepo = new PrismaAccountRepository(db);
+
+  const githubOauthService = new GithubOauthService();
   const hashService = new BcryptHashService();
   const tokenService = new TokenService(redis);
 
   const authService = new AuthService(hashService, tokenService, userRepo);
   const postService = new PostService(postRepo);
+  const oauthService = new OauthService(accountRepo, userRepo, tokenService, githubOauthService);
 
-  const authController = new AuthController(authService);
+  const authController = new AuthController(authService, oauthService, githubOauthService, redis);
   const postController = new PostController(postService);
 
   const routes = createRoutes({ authController, postController, tokenService });

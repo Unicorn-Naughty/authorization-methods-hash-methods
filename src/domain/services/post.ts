@@ -14,7 +14,7 @@ export class PostService {
 
     if (!post) throw new AppError("Post not found", 404);
 
-    if (post?.userId !== data.userId) throw new AppError("Forbidden", 403);
+    if (post?.user_id !== data.user_id) throw new AppError("Forbidden", 403);
 
     return this.repo.update(data);
   }
@@ -27,11 +27,11 @@ export class PostService {
     return this.repo.findAll();
   }
 
-  async delete(id: string, userId: string) {
+  async delete(id: string, user_id: string) {
     const post = await this.repo.findById(id);
     if (!post) throw new AppError("Post not found", 404);
 
-    if (post?.userId !== userId) throw new AppError("Forbidden", 403);
+    if (post?.user_id !== user_id) throw new AppError("Forbidden", 403);
 
     return this.repo.delete(id);
   }

@@ -2,7 +2,7 @@ import { JwtPayload } from "jsonwebtoken";
 import { IUser } from "../../domain/entities";
 
 export interface JWTPayload extends JwtPayload {
-  userId: string;
+  user_id: string;
   jti: string;
   familyId: string;
 }
