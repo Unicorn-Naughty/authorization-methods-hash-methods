@@ -32,7 +32,7 @@ export function createAuthRouter(controller: AuthController): Router {
    *           Set-Cookie:
    *             schema:
    *               type: string
-   *             description: HttpOnly refreshToken cookie. Path=/auth, Max-Age=7 days.
+   *             description: HttpOnly refreshToken cookie. Path=/api/auth, Max-Age=7 days.
    *         content:
    *           application/json:
    *             schema:
@@ -69,7 +69,7 @@ export function createAuthRouter(controller: AuthController): Router {
    *           Set-Cookie:
    *             schema:
    *               type: string
-   *             description: HttpOnly refreshToken cookie. Path=/auth, Max-Age=7 days.
+   *             description: HttpOnly refreshToken cookie. Path=/api/auth, Max-Age=7 days.
    *         content:
    *           application/json:
    *             schema:
@@ -102,7 +102,7 @@ export function createAuthRouter(controller: AuthController): Router {
    *           Set-Cookie:
    *             schema:
    *               type: string
-   *             description: HttpOnly refreshToken cookie. Path=/auth, Max-Age=7 days.
+   *             description: HttpOnly refreshToken cookie. Path=/api/auth, Max-Age=7 days.
    *         content:
    *           application/json:
    *             schema:
@@ -180,7 +180,7 @@ export function createAuthRouter(controller: AuthController): Router {
    *           Set-Cookie:
    *             schema:
    *               type: string
-   *             description: HttpOnly refreshToken cookie. Path=/auth, Max-Age=7 days.
+   *             description: HttpOnly refreshToken cookie. Path=/api/auth, Max-Age=7 days.
    *         content:
    *           application/json:
    *             schema:

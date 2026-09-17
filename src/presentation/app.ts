@@ -1,6 +1,10 @@
 import express, { type Express } from "express";
 
-import { PrismaAccountRepository, PrismaPostRepository, PrismaUserRepository } from "../infrastructure/db/repositories";
+import {
+  PrismaAccountRepository,
+  PrismaPostRepository,
+  PrismaUserRepository,
+} from "../infrastructure/db/repositories";
 import { AuthService, OauthService, PostService } from "../domain/services";
 import { BcryptHashService } from "../infrastructure/services/hash";
 import { TokenService } from "../infrastructure/services/token";
@@ -38,7 +42,7 @@ export async function createApp(): Promise<Express> {
   const postService = new PostService(postRepo);
   const oauthService = new OauthService(accountRepo, userRepo, tokenService, githubOauthService);
 
-  const authController = new AuthController(authService, oauthService, githubOauthService, redis);
+  const authController = new AuthController(authService, oauthService, redis);
   const postController = new PostController(postService);
 
   const routes = createRoutes({ authController, postController, tokenService });

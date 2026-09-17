@@ -3,14 +3,12 @@ import type { ILoginData, IRegisterData } from "../../application/dtos";
 import { AuthService, OauthService } from "../../domain/services/authorization";
 import { RedisClient } from "../../infrastructure/db/redis.client";
 import { createHandler } from "../utils/create-handler";
-import { GithubOauthService } from "../../infrastructure/services/oauth/github";
 import { AppError } from "../../shared";
 
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly oauthService: OauthService,
-    private readonly githubOauth: GithubOauthService,
     private readonly redis: RedisClient,
   ) {}
 
@@ -21,7 +19,7 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      path: "/auth",
+      path: "/api/auth",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -35,14 +33,16 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      path: "/auth",
+      path: "/api/auth",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     res.status(201).json({ accessToken, user });
   });
 
   refresh = createHandler(async (req, res) => {
-    const { accessToken, refreshToken } = await this.authService.refresh(req.cookies.refreshToken);
+    const token = (req.cookies.refreshToken && typeof req.cookies.refreshToken === "string") ?? "";
+
+    const { accessToken, refreshToken } = await this.authService.refresh(token);
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
@@ -59,7 +59,7 @@ export class AuthController {
     const token = req.cookies.refreshToken;
 
     if (token) {
-      await this.authService.logout(req.body.refreshToken);
+      await this.authService.logout(token);
     }
 
     res.clearCookie("refreshToken", {
