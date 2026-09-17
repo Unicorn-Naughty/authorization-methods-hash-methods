@@ -4,5 +4,5 @@ export interface IUser {
 }
 
 export interface IUserWithPassword extends IUser {
-  password: string;
+  password: string | null;
 }

@@ -31,7 +31,7 @@ export class AuthService {
   async login(data: ILoginData): Promise<IAuthResult> {
     const user = await this.userRepo.findByEmail(data.email);
 
-    if (!user) throw new AppError("invalid credentials", 401);
+    if (!user || !user.password) throw new AppError("invalid credentials", 401);
 
     const checkCompare = await this.hashService.compare(data.password, user.password);
 

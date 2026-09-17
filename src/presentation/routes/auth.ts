@@ -2,7 +2,13 @@ import { Router } from "express";
 import { AuthController } from "../controllers/auth-controller";
 import { credentialsRules } from "../http/schemas";
 import { validate } from "../middlewares/validate";
-import { loginLimiter, oauthGithubLimiterCallback, oauthGithubLimiterLogin, refreshLimiter, regLimiter } from "../middlewares/rate-limit";
+import {
+  loginLimiter,
+  oauthGithubLimiterCallback,
+  oauthGithubLimiterLogin,
+  refreshLimiter,
+  regLimiter,
+} from "../middlewares/rate-limit";
 
 export function createAuthRouter(controller: AuthController): Router {
   const router = Router();
@@ -143,6 +149,8 @@ export function createAuthRouter(controller: AuthController): Router {
    *             schema:
    *               type: string
    *               format: uri
+   *       429:
+   *         $ref: '#/components/responses/RateLimited'
    */
   router.get("/oauth/github/login", oauthGithubLimiterLogin, controller.githubLogin);
 

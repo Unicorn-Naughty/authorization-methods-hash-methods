@@ -41,20 +41,21 @@ export class AuthController {
     res.status(201).json({ accessToken, user });
   });
 
-  refresh = createHandler<{ refreshToken: string }>(async (req, res) => {
-    const { accessToken, refreshToken } = await this.authService.refresh(req.body.refreshToken);
+  refresh = createHandler(async (req, res) => {
+    const { accessToken, refreshToken } = await this.authService.refresh(req.cookies.refreshToken);
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      path: "/auth",
+      path: "/api/auth",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
+
     res.status(201).json({ accessToken });
   });
 
-  logout = createHandler<{ refreshToken: string }>(async (req, res) => {
+  logout = createHandler(async (req, res) => {
     const token = req.cookies.refreshToken;
 
     if (token) {
@@ -65,7 +66,7 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      path: "/auth",
+      path: "/api/auth",
     });
 
     res.status(204).send();
@@ -76,11 +77,11 @@ export class AuthController {
     const codeVerifier = randomBytes(32).toString("base64url");
     const codeChallenge = createHash("sha256").update(codeVerifier).digest("base64url");
 
-    await this.redis.set(`ouath:state:${state}`, codeVerifier, {
+    await this.redis.set(`oauth:state:${state}`, codeVerifier, {
       expiration: { type: "EX", value: 600 },
     });
 
-    const url = this.githubOauth.getRedirectUrl(state, codeChallenge);
+    const url = this.oauthService.sendRedirectUrl({ state, codeChallenge });
 
     res.redirect(url);
   });
@@ -97,7 +98,7 @@ export class AuthController {
       throw new AppError("invalid oauth callback", 400);
     }
 
-    const codeVerifier = await this.redis.GETDEL(`ouath:state:${state}`);
+    const codeVerifier = await this.redis.GETDEL(`oauth:state:${state}`);
 
     if (!codeVerifier) {
       throw new AppError("invalid oauth state", 401);
@@ -112,7 +113,7 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      path: "/auth",
+      path: "/api/auth",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
