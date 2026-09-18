@@ -1,13 +1,16 @@
+import { createServer } from "node:https";
 import { createApp } from "./presentation/app";
 import { redis } from "./infrastructure/db/redis.client";
 import { db } from "./infrastructure/db/prisma.client";
+import { loadHttpsCerts } from "./infrastructure/https";
 
 const PORT = Number(process.env.PORT ?? 3000);
 
 const app = await createApp();
+const { key, cert } = loadHttpsCerts();
 
-const server = app.listen(PORT, () => {
-  console.log(`Server started on http://localhost:${PORT}`);
+const server = createServer({ key, cert }, app).listen(PORT, () => {
+  console.log(`Server started on https://localhost:${PORT}`);
 });
 
 async function shutdown(signal: string) {

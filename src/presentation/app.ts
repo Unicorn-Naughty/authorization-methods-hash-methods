@@ -70,7 +70,7 @@ export async function createApp(): Promise<Express> {
   );
   app.use(
     cors({
-      origin: "http://localhost:5173",
+      origin: ["http://localhost:5173", "https://localhost:5173"],
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization"],
       methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
