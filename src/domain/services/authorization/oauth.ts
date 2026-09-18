@@ -1,5 +1,5 @@
 import { IAccountRepository, IUserRepository } from "../../../application/ports/repositories";
-import { IOauth, ITokenService } from "../../../application/ports/services";
+import { IOauthService, ITokenService, TProvider } from "../../../application/ports/services";
 import { AppError } from "../../../shared";
 import { IAccount, IUser, IUserWithPassword } from "../../entities";
 
@@ -8,15 +8,40 @@ export class OauthService {
     private accountRepo: IAccountRepository,
     private userRepo: IUserRepository,
     private tokenService: ITokenService,
-    private oauth: IOauth,
+    private oauth: IOauthService,
   ) {}
 
-  async oauthLogin({ code, code_verifier }: { code: string; code_verifier: string }) {
-    const githubAccount = await this.oauth.getAccount({ code, code_verifier });
+  async oauthLogin({
+    code,
+    code_verifier,
+    provider,
+    state,
+    device_id,
+  }: {
+    code: string;
+    code_verifier: string;
+    provider: TProvider;
+    state?: string;
+    device_id?: string;
+  }) {
+    let oauthAccount;
+
+    if (provider === "vk") {
+      if (!state || !device_id) {
+        throw new AppError("invalid vk oauth callback", 400);
+      }
+
+      oauthAccount = await this.oauth.getAccount(
+        { code, code_verifier, state, device_id },
+        provider,
+      );
+    } else {
+      oauthAccount = await this.oauth.getAccount({ code, code_verifier }, provider);
+    }
 
     let account: IAccount | null = await this.accountRepo.find({
-      provider: githubAccount.provider,
-      provider_account_id: githubAccount.provider_account_id,
+      provider: oauthAccount.provider,
+      provider_account_id: oauthAccount.provider_account_id,
     });
 
     let user: IUser | IUserWithPassword | null;
@@ -25,15 +50,15 @@ export class OauthService {
     const jti = crypto.randomUUID();
 
     if (!account) {
-      user = await this.userRepo.findByEmail(githubAccount.email);
+      user = await this.userRepo.findByEmail(oauthAccount.email);
 
       if (!user) {
-        user = await this.userRepo.create({ email: githubAccount.email });
+        user = await this.userRepo.create({ email: oauthAccount.email });
       }
 
       account = await this.accountRepo.create({
-        provider: githubAccount.provider,
-        provider_account_id: githubAccount.provider_account_id,
+        provider: oauthAccount.provider,
+        provider_account_id: oauthAccount.provider_account_id,
         user_id: user.id,
       });
     }
@@ -52,7 +77,15 @@ export class OauthService {
     };
   }
 
-  sendRedirectUrl({ state, codeChallenge }: { state: string; codeChallenge: string }) {
-    return this.oauth.getRedirectUrl(state, codeChallenge);
+  sendRedirectUrl({
+    state,
+    codeChallenge,
+    provider,
+  }: {
+    state: string;
+    codeChallenge: string;
+    provider: TProvider;
+  }) {
+    return this.oauth.getRedirectUrl(state, codeChallenge, provider);
   }
 }

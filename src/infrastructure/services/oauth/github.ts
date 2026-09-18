@@ -5,7 +5,7 @@ import {
   IGithubOauthTokenRes,
   IGithubOauthUserRes,
 } from "../../../application/dtos";
-import { IOauth } from "../../../application/ports/services";
+import { IOauthService } from "../../../application/ports/services";
 import {
   GITHUB_CALLBACK_URL,
   GITHUB_CLIENT_ID,
@@ -13,7 +13,7 @@ import {
 } from "../../../config/config";
 import { AppError } from "../../../shared";
 
-export class GithubOauthService implements IOauth {
+export class GithubOauthService implements IOauthService {
   getRedirectUrl(state: string, code_challenge: string): string {
     const params = new URLSearchParams({
       client_id: GITHUB_CLIENT_ID,

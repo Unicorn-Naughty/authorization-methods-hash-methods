@@ -4,12 +4,13 @@ export const swaggerOptions: swaggerJsdoc.OAS3Options = {
   definition: {
     openapi: "3.0.3",
     info: {
-      title: "API",
+      title: "learn",
       version: "1.0.0",
+      description: "JWT auth, OAuth (VK, GitHub, Yandex) and posts.",
     },
     servers: [{ url: "/" }],
     tags: [
-      { name: "Auth", description: "Register, login, refresh, logout" },
+      { name: "Auth", description: "Email login, refresh, logout, OAuth" },
       { name: "Posts", description: "Create, read, update, delete posts" },
     ],
     components: {
@@ -29,12 +30,9 @@ export const swaggerOptions: swaggerJsdoc.OAS3Options = {
             password: { type: "string", minLength: 10, maxLength: 50, example: "correcthorse" },
           },
         },
-        RefreshBody: {
-          type: "object",
-          required: ["refreshToken"],
-          properties: {
-            refreshToken: { type: "string" },
-          },
+        OAuthProvider: {
+          type: "string",
+          enum: ["vk", "github", "yandex"],
         },
         User: {
           type: "object",

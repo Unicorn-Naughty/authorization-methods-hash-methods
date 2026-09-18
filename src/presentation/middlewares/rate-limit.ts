@@ -24,7 +24,7 @@ export const loginLimiter = rateLimit({
   ipv6Subnet: 56,
 });
 
-export const oauthGithubLimiterLogin = rateLimit({
+export const oauthLoginLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   limit: 10,
   standardHeaders: "draft-8",
@@ -32,7 +32,7 @@ export const oauthGithubLimiterLogin = rateLimit({
   ipv6Subnet: 56,
 });
 
-export const oauthGithubLimiterCallback = rateLimit({
+export const oauthCallbackLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   limit: 10,
   standardHeaders: "draft-8",

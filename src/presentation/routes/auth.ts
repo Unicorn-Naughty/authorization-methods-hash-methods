@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { AuthController } from "../controllers/auth-controller";
-import { credentialsRules } from "../http/schemas";
+import { credentialsRules, oauthCallbackQuery, oauthLoginRules } from "../http/schemas";
 import { validate } from "../middlewares/validate";
 import {
   loginLimiter,
-  oauthGithubLimiterCallback,
-  oauthGithubLimiterLogin,
+  oauthCallbackLimiter,
+  oauthLoginLimiter,
   refreshLimiter,
   regLimiter,
 } from "../middlewares/rate-limit";
@@ -89,12 +89,12 @@ export function createAuthRouter(controller: AuthController): Router {
    *   post:
    *     tags: [Auth]
    *     summary: Refresh tokens
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             $ref: '#/components/schemas/RefreshBody'
+   *     parameters:
+   *       - in: cookie
+   *         name: refreshToken
+   *         required: true
+   *         schema:
+   *           type: string
    *     responses:
    *       201:
    *         description: New access token. Refresh token rotated in Set-Cookie.
@@ -137,29 +137,42 @@ export function createAuthRouter(controller: AuthController): Router {
 
   /**
    * @openapi
-   * /api/auth/oauth/github/login:
+   * /api/auth/oauth/login:
    *   get:
    *     tags: [Auth]
-   *     summary: Start GitHub OAuth
+   *     summary: Start OAuth
+   *     parameters:
+   *       - in: query
+   *         name: provider
+   *         required: true
+   *         schema:
+   *           $ref: '#/components/schemas/OAuthProvider'
    *     responses:
    *       302:
-   *         description: Redirect to GitHub authorize URL
+   *         description: Redirect to the provider authorize URL
    *         headers:
    *           Location:
    *             schema:
    *               type: string
    *               format: uri
+   *       400:
+   *         $ref: '#/components/responses/ValidationError'
    *       429:
    *         $ref: '#/components/responses/RateLimited'
    */
-  router.get("/oauth/github/login", oauthGithubLimiterLogin, controller.githubLogin);
+  router.get(
+    "/oauth/login",
+    validate({ query: oauthLoginRules }),
+    oauthLoginLimiter,
+    controller.oauthLogin,
+  );
 
   /**
    * @openapi
-   * /api/auth/oauth/github/callback:
+   * /api/auth/oauth/callback:
    *   get:
    *     tags: [Auth]
-   *     summary: GitHub OAuth callback
+   *     summary: OAuth callback
    *     parameters:
    *       - in: query
    *         name: code
@@ -170,7 +183,21 @@ export function createAuthRouter(controller: AuthController): Router {
    *         schema:
    *           type: string
    *       - in: query
+   *         name: device_id
+   *         description: Required for VK
+   *         schema:
+   *           type: string
+   *       - in: query
+   *         name: payload
+   *         description: VK payload JSON with code, state, device_id
+   *         schema:
+   *           type: string
+   *       - in: query
    *         name: error
+   *         schema:
+   *           type: string
+   *       - in: query
+   *         name: error_description
    *         schema:
    *           type: string
    *     responses:
@@ -192,7 +219,12 @@ export function createAuthRouter(controller: AuthController): Router {
    *       429:
    *         $ref: '#/components/responses/RateLimited'
    */
-  router.get("/oauth/github/callback", oauthGithubLimiterCallback, controller.githubCallback);
+  router.get(
+    "/oauth/callback",
+    validate({ query: oauthCallbackQuery }),
+    oauthCallbackLimiter,
+    controller.oauthCallback,
+  );
 
   return router;
 }

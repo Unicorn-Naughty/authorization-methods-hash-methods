@@ -20,7 +20,11 @@ import cors from "cors";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import { swaggerOptions } from "./http/swagger";
-import { GithubOauthService } from "../infrastructure/services/oauth/github";
+import {
+  VKOuathService,
+  GithubOauthService,
+  CommonOauthService,
+} from "../infrastructure/services/oauth";
 
 export async function createApp(): Promise<Express> {
   if (!redis.isOpen) {
@@ -35,12 +39,15 @@ export async function createApp(): Promise<Express> {
   const accountRepo = new PrismaAccountRepository(db);
 
   const githubOauthService = new GithubOauthService();
+  const vKOauthService = new VKOuathService();
+  const commonOauthService = new CommonOauthService(githubOauthService, vKOauthService);
+
   const hashService = new BcryptHashService();
   const tokenService = new TokenService(redis);
 
   const authService = new AuthService(hashService, tokenService, userRepo);
   const postService = new PostService(postRepo);
-  const oauthService = new OauthService(accountRepo, userRepo, tokenService, githubOauthService);
+  const oauthService = new OauthService(accountRepo, userRepo, tokenService, commonOauthService);
 
   const authController = new AuthController(authService, oauthService, redis);
   const postController = new PostController(postService);
