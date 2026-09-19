@@ -1,25 +1,38 @@
-import { PrismaClient } from "@prisma/client";
-import { ICreatePostData, IUpdatePostData } from "../../../application/dtos";
-import { IPostRepository } from "../../../application/ports/repositories";
+import { ICreatePostData, IListPostsQuery, IUpdatePostData } from "../../../application/dtos";
 import { IPost } from "../../../domain/entities";
+import { IPostRepository } from "../../../application/ports/repositories";
+import { prisma } from "../prisma.client";
 
 export class PrismaPostRepository implements IPostRepository {
-  constructor(private db: PrismaClient) {}
-
   create(data: ICreatePostData): Promise<IPost> {
-    return this.db.post.create({ data });
+    return prisma().post.create({ data });
   }
+
   findById(id: string): Promise<IPost | null> {
-    return this.db.post.findFirst({ where: { id } });
+    return prisma().post.findUnique({ where: { id } });
   }
-  findAll(): Promise<IPost[]> {
-    return this.db.post.findMany();
+
+  async findAll(query: IListPostsQuery): Promise<{ items: IPost[]; total: number }> {
+    const skip = (query.page - 1) * query.limit;
+
+    const [items, total] = await Promise.all([
+      prisma().post.findMany({
+        take: query.limit,
+        skip,
+        orderBy: { created_at: "desc" },
+      }),
+      prisma().post.count(),
+    ]);
+
+    return { items, total };
   }
+
   async update(data: IUpdatePostData): Promise<IPost> {
-    const { id, ...rest } = data;
-    return this.db.post.update({ where: { id }, data: rest });
+    const { id, user_id: _userId, ...rest } = data;
+    return prisma().post.update({ where: { id }, data: rest });
   }
+
   async delete(id: string): Promise<void> {
-    await this.db.post.delete({ where: { id } });
+    await prisma().post.delete({ where: { id } });
   }
 }

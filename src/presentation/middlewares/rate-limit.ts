@@ -1,41 +1,38 @@
 import rateLimit from "express-rate-limit";
 
-export const refreshLimiter = rateLimit({
+const common = {
   windowMs: 10 * 60 * 1000,
-  limit: 20,
-  standardHeaders: "draft-8",
+  standardHeaders: "draft-8" as const,
   legacyHeaders: false,
   ipv6Subnet: 56,
+};
+
+export const refreshLimiter = rateLimit({
+  ...common,
+  limit: 20,
 });
 
 export const regLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
+  ...common,
   limit: 10,
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-  ipv6Subnet: 56,
 });
 
 export const loginLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
+  ...common,
   limit: 10,
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-  ipv6Subnet: 56,
+});
+
+export const logoutLimiter = rateLimit({
+  ...common,
+  limit: 20,
 });
 
 export const oauthLoginLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
+  ...common,
   limit: 10,
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-  ipv6Subnet: 56,
 });
 
 export const oauthCallbackLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
+  ...common,
   limit: 10,
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-  ipv6Subnet: 56,
 });

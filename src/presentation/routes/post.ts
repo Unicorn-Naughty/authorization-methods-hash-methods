@@ -1,6 +1,6 @@
 import { RequestHandler, Router } from "express";
 import { PostController } from "../controllers/post-controller";
-import { createRules, idParams, updateRules } from "../http/schemas";
+import { createRules, idParams, listPostsQuery, updateRules } from "../http/schemas";
 import { validate } from "../middlewares/validate";
 
 export function createPostRouter(controller: PostController, mw: RequestHandler): Router {
@@ -68,7 +68,8 @@ export function createPostRouter(controller: PostController, mw: RequestHandler)
    * /api/posts/{id}:
    *   patch:
    *     tags: [Posts]
-   *     summary: Update post
+     *     summary: Update post
+     *     description: At least one of title or text is required.
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -108,17 +109,31 @@ export function createPostRouter(controller: PostController, mw: RequestHandler)
    *   get:
    *     tags: [Posts]
    *     summary: List posts
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           default: 1
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           maximum: 100
+   *           default: 20
    *     responses:
    *       200:
-   *         description: All posts
+   *         description: Posts page
    *         content:
    *           application/json:
    *             schema:
-   *               type: array
-   *               items:
-   *                 $ref: '#/components/schemas/Post'
+   *               $ref: '#/components/schemas/PaginatedPosts'
+   *       400:
+   *         $ref: '#/components/responses/ValidationError'
    */
-  router.get("/", controller.findAll);
+  router.get("/", validate({ query: listPostsQuery }), controller.findAll);
 
   /**
    * @openapi
@@ -135,15 +150,15 @@ export function createPostRouter(controller: PostController, mw: RequestHandler)
    *           format: uuid
    *     responses:
    *       200:
-   *         description: Post, or null if missing
+   *         description: Post
    *         content:
    *           application/json:
    *             schema:
-   *               allOf:
-   *                 - $ref: '#/components/schemas/Post'
-   *               nullable: true
+   *               $ref: '#/components/schemas/Post'
    *       400:
    *         $ref: '#/components/responses/ValidationError'
+   *       404:
+   *         $ref: '#/components/responses/NotFound'
    */
   router.get("/:id", validate({ params: idParams }), controller.findOne);
 

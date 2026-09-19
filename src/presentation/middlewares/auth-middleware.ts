@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import type { ITokenService } from "../../application/ports/services";
-import { AppError } from "../../shared";
+import { AppError } from "../../domain/errors";
 
 export function authMiddleware(tokenService: ITokenService) {
   return (req: Request, _res: Response, next: NextFunction) => {

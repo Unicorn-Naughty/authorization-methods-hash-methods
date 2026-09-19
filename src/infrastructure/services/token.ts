@@ -1,10 +1,22 @@
-import { ITokenService, IRotatedRefreshToken } from "../../application/ports/services";
+import { ITokenPair } from "../../application/dtos";
+import { IRotatedRefreshToken, ITokenService } from "../../application/ports/services";
 import jwt from "jsonwebtoken";
-import { JWT_ACCESS_SECRET, JWT_REFRESH_SECRET } from "../../config/config";
+import {
+  ACCESS_TOKEN_EXPIRES_IN,
+  JWT_ACCESS_SECRET,
+  JWT_REFRESH_SECRET,
+  REFRESH_TOKEN_EXPIRES_IN,
+  REFRESH_TTL_SECONDS,
+} from "../../config/config";
 import type { RedisClient } from "../db/redis.client";
-import { JWTPayload } from "../../application/dtos";
 
-const REFRESH_TTL_SECONDS = 7 * 24 * 60 * 60;
+const JWT_ALG = "HS256" as const;
+
+type RefreshJwtPayload = jwt.JwtPayload & {
+  user_id?: string;
+  jti?: string;
+  familyId?: string;
+};
 
 const refreshKey = (user_id: string, jti: string) => `refresh_token:${user_id}:${jti}`;
 const familyKey = (user_id: string, familyId: string) => `family:${user_id}:${familyId}`;
@@ -44,11 +56,17 @@ export class TokenService implements ITokenService {
   constructor(private redis: RedisClient) {}
 
   generateAccessToken(user_id: string): string {
-    return jwt.sign({ user_id }, JWT_ACCESS_SECRET, { expiresIn: "15m" });
+    return jwt.sign({ user_id }, JWT_ACCESS_SECRET, {
+      algorithm: JWT_ALG,
+      expiresIn: ACCESS_TOKEN_EXPIRES_IN,
+    });
   }
 
   async generateRefreshToken(user_id: string, jti: string, familyId: string): Promise<string> {
-    const token = jwt.sign({ user_id, jti, familyId }, JWT_REFRESH_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign({ user_id, jti, familyId }, JWT_REFRESH_SECRET, {
+      algorithm: JWT_ALG,
+      expiresIn: REFRESH_TOKEN_EXPIRES_IN,
+    });
 
     await this.redis.set(refreshKey(user_id, jti), familyId, { EX: REFRESH_TTL_SECONDS });
     await this.redis.set(familyKey(user_id, familyId), jti, { EX: REFRESH_TTL_SECONDS });
@@ -56,11 +74,21 @@ export class TokenService implements ITokenService {
     return token;
   }
 
+  async issueTokenPair(user_id: string): Promise<ITokenPair> {
+    const familyId = crypto.randomUUID();
+    const jti = crypto.randomUUID();
+
+    return {
+      accessToken: this.generateAccessToken(user_id),
+      refreshToken: await this.generateRefreshToken(user_id, jti, familyId),
+    };
+  }
+
   async rotateRefreshToken(token: string): Promise<IRotatedRefreshToken | null> {
-    let payload: jwt.JwtPayload & { user_id?: string; jti?: string; familyId?: string };
+    let payload: RefreshJwtPayload;
 
     try {
-      payload = jwt.verify(token, JWT_REFRESH_SECRET) as typeof payload;
+      payload = jwt.verify(token, JWT_REFRESH_SECRET, { algorithms: [JWT_ALG] }) as RefreshJwtPayload;
     } catch {
       return null;
     }
@@ -97,7 +125,8 @@ export class TokenService implements ITokenService {
     }
 
     const newToken = jwt.sign({ user_id, jti: jtiForToken, familyId }, JWT_REFRESH_SECRET, {
-      expiresIn: "7d",
+      algorithm: JWT_ALG,
+      expiresIn: REFRESH_TOKEN_EXPIRES_IN,
     });
 
     return { refreshToken: newToken, user_id };
@@ -105,8 +134,8 @@ export class TokenService implements ITokenService {
 
   verifyAccessToken(token: string): string | null {
     try {
-      const payload = jwt.verify(token, JWT_ACCESS_SECRET) as JWTPayload;
-      return payload.user_id;
+      const payload = jwt.verify(token, JWT_ACCESS_SECRET, { algorithms: [JWT_ALG] }) as RefreshJwtPayload;
+      return payload.user_id ?? null;
     } catch {
       return null;
     }
@@ -116,14 +145,16 @@ export class TokenService implements ITokenService {
     token: string,
   ): Promise<{ user_id: string; familyId: string; jti: string } | null> {
     try {
-      const payload = jwt.verify(token, JWT_REFRESH_SECRET) as JWTPayload;
+      const payload = jwt.verify(token, JWT_REFRESH_SECRET, {
+        algorithms: [JWT_ALG],
+      }) as RefreshJwtPayload;
 
       if (!payload.jti || !payload.user_id || !payload.familyId) return null;
 
-      const refreshToken = await this.redis.get(refreshKey(payload.user_id, payload.jti));
-      const family = await this.redis.get(familyKey(payload.user_id, payload.familyId));
+      const storedFamily = await this.redis.get(refreshKey(payload.user_id, payload.jti));
+      const storedJti = await this.redis.get(familyKey(payload.user_id, payload.familyId));
 
-      if (family !== payload.jti || refreshToken !== payload.familyId) return null;
+      if (storedJti !== payload.jti || storedFamily !== payload.familyId) return null;
 
       return { user_id: payload.user_id, familyId: payload.familyId, jti: payload.jti };
     } catch {
@@ -133,7 +164,11 @@ export class TokenService implements ITokenService {
 
   async revokeRefreshToken(token: string): Promise<void> {
     try {
-      const payload = jwt.verify(token, JWT_REFRESH_SECRET) as JWTPayload;
+      const payload = jwt.verify(token, JWT_REFRESH_SECRET, {
+        algorithms: [JWT_ALG],
+      }) as RefreshJwtPayload;
+
+      if (!payload.user_id || !payload.jti || !payload.familyId) return;
 
       await this.redis.del(refreshKey(payload.user_id, payload.jti));
       await this.redis.del(familyKey(payload.user_id, payload.familyId));

@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-
 import { ZodType } from "zod";
+import { AppError } from "../../domain/errors";
 
 export const validate = (schemas: { body?: ZodType; params?: ZodType; query?: ZodType }) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, _res: Response, next: NextFunction) => {
     const keys = ["body", "params", "query"] as const;
     const details: Array<{ path: string; message: string }> = [];
 
@@ -21,14 +21,26 @@ export const validate = (schemas: { body?: ZodType; params?: ZodType; query?: Zo
             message: issue.message,
           });
         }
+        continue;
+      }
+
+      if (key === "query") {
+        Object.defineProperty(req, "query", {
+          value: result.data,
+          enumerable: true,
+          configurable: true,
+          writable: true,
+        });
       } else {
         req[key] = result.data;
       }
     }
+
     if (details.length > 0) {
-      res.status(400).json({ error: "validation", details });
+      next(new AppError("validation error", 400, details));
       return;
     }
+
     next();
   };
 };

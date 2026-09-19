@@ -1,17 +1,19 @@
-import { IGetAccountData, IGetAccountResponse, IGetVKAccountData } from "../../dtos";
+import { IGetAccountData, IGetAccountResponse } from "../../dtos";
 
-export type TProvider = "vk" | "github" | "yandex";
+export const OAUTH_PROVIDERS = ["vk", "github", "google"] as const;
 
-export enum Provider {
-  VK = "vk",
-  GH = "github",
-  YAN = "yandex",
+export type TProvider = (typeof OAUTH_PROVIDERS)[number];
+
+export function isProvider(value: unknown): value is TProvider {
+  return typeof value === "string" && (OAUTH_PROVIDERS as readonly string[]).includes(value);
 }
 
-export interface IOauthService {
-  getRedirectUrl(state: string, code_challenge: string, provider?: TProvider): string;
-  getAccount(
-    data: IGetAccountData | IGetVKAccountData,
-    provider?: TProvider,
-  ): Promise<IGetAccountResponse>;
+export interface IOauthProvider {
+  getRedirectUrl(state: string, code_challenge: string): string;
+  getAccount(data: IGetAccountData): Promise<IGetAccountResponse>;
+}
+
+export interface IOauthSessionStore {
+  save(state: string, payload: string, ttlSeconds: number): Promise<void>;
+  consume(state: string): Promise<string | null>;
 }

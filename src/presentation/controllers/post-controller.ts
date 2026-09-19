@@ -1,3 +1,4 @@
+import { IListPostsQuery, IUpdatePostData } from "../../application/dtos";
 import { PostService } from "../../domain/services";
 import { createHandler } from "../utils/create-handler";
 
@@ -9,26 +10,28 @@ export class PostController {
     res.status(201).json(data);
   });
 
-  update = createHandler<{ title: string; text: string }>(async (req, res) => {
-    const data = await this.postService.update({
-      ...req.body,
-      user_id: req.user_id!,
-      id: req.params.id,
-    });
-    res.status(200).json(data);
-  });
+  update = createHandler<Pick<IUpdatePostData, "title" | "text">, { id: string }>(
+    async (req, res) => {
+      const data = await this.postService.update({
+        ...req.body,
+        user_id: req.user_id!,
+        id: req.params.id,
+      });
+      res.status(200).json(data);
+    },
+  );
 
-  findOne = createHandler(async (req, res) => {
+  findOne = createHandler<unknown, { id: string }>(async (req, res) => {
     const data = await this.postService.findOne(req.params.id);
     res.status(200).json(data);
   });
 
-  findAll = createHandler(async (_req, res) => {
-    const data = await this.postService.findAll();
+  findAll = createHandler<unknown, unknown, IListPostsQuery>(async (req, res) => {
+    const data = await this.postService.findAll(req.query);
     res.status(200).json(data);
   });
 
-  delete = createHandler(async (req, res) => {
+  delete = createHandler<unknown, { id: string }>(async (req, res) => {
     await this.postService.delete(req.params.id, req.user_id!);
     res.status(204).send();
   });

@@ -1,17 +1,24 @@
 import { Router } from "express";
+import { CORS_ORIGINS } from "../../config/config";
 import { AuthController } from "../controllers/auth-controller";
 import { credentialsRules, oauthCallbackQuery, oauthLoginRules } from "../http/schemas";
+import { cookieCsrf } from "../middlewares/csrf";
 import { validate } from "../middlewares/validate";
 import {
   loginLimiter,
+  logoutLimiter,
   oauthCallbackLimiter,
   oauthLoginLimiter,
   refreshLimiter,
   regLimiter,
 } from "../middlewares/rate-limit";
 
-export function createAuthRouter(controller: AuthController): Router {
+export function createAuthRouter(
+  controller: AuthController,
+  allowedOrigins: string[] = CORS_ORIGINS,
+): Router {
   const router = Router();
+  const csrf = cookieCsrf(allowedOrigins);
 
   /**
    * @openapi
@@ -32,7 +39,7 @@ export function createAuthRouter(controller: AuthController): Router {
    *           Set-Cookie:
    *             schema:
    *               type: string
-   *             description: HttpOnly refreshToken cookie. Path=/api/auth, Max-Age=7 days.
+   *             description: HttpOnly refreshToken cookie. Secure, SameSite=None, Path=/api/auth, Max-Age=7 days.
    *         content:
    *           application/json:
    *             schema:
@@ -63,13 +70,13 @@ export function createAuthRouter(controller: AuthController): Router {
    *           schema:
    *             $ref: '#/components/schemas/Credentials'
    *     responses:
-   *       201:
+   *       200:
    *         description: Logged in. Access token in body, refresh token in Set-Cookie.
    *         headers:
    *           Set-Cookie:
    *             schema:
    *               type: string
-   *             description: HttpOnly refreshToken cookie. Path=/api/auth, Max-Age=7 days.
+   *             description: HttpOnly refreshToken cookie. Secure, SameSite=None, Path=/api/auth, Max-Age=7 days.
    *         content:
    *           application/json:
    *             schema:
@@ -96,25 +103,27 @@ export function createAuthRouter(controller: AuthController): Router {
    *         schema:
    *           type: string
    *     responses:
-   *       201:
+   *       200:
    *         description: New access token. Refresh token rotated in Set-Cookie.
    *         headers:
    *           Set-Cookie:
    *             schema:
    *               type: string
-   *             description: HttpOnly refreshToken cookie. Path=/api/auth, Max-Age=7 days.
+   *             description: HttpOnly refreshToken cookie. Secure, SameSite=None, Path=/api/auth, Max-Age=7 days.
    *         content:
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/AccessTokenResponse'
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
+   *       403:
+   *         $ref: '#/components/responses/Forbidden'
    *       404:
    *         $ref: '#/components/responses/NotFound'
    *       429:
    *         $ref: '#/components/responses/RateLimited'
    */
-  router.post("/refresh", refreshLimiter, controller.refresh);
+  router.post("/refresh", refreshLimiter, csrf, controller.refresh);
 
   /**
    * @openapi
@@ -130,10 +139,12 @@ export function createAuthRouter(controller: AuthController): Router {
    *     responses:
    *       204:
    *         $ref: '#/components/responses/NoContent'
+   *       403:
+   *         $ref: '#/components/responses/Forbidden'
    *       429:
    *         $ref: '#/components/responses/RateLimited'
    */
-  router.post("/logout", controller.logout);
+  router.post("/logout", logoutLimiter, csrf, controller.logout);
 
   /**
    * @openapi
@@ -145,6 +156,7 @@ export function createAuthRouter(controller: AuthController): Router {
    *       - in: query
    *         name: provider
    *         required: true
+   *         description: vk, github or google
    *         schema:
    *           $ref: '#/components/schemas/OAuthProvider'
    *     responses:
@@ -162,8 +174,8 @@ export function createAuthRouter(controller: AuthController): Router {
    */
   router.get(
     "/oauth/login",
-    validate({ query: oauthLoginRules }),
     oauthLoginLimiter,
+    validate({ query: oauthLoginRules }),
     controller.oauthLogin,
   );
 
@@ -207,13 +219,19 @@ export function createAuthRouter(controller: AuthController): Router {
    *           Set-Cookie:
    *             schema:
    *               type: string
-   *             description: HttpOnly refreshToken cookie. Path=/api/auth, Max-Age=7 days.
+   *             description: HttpOnly refreshToken cookie. Secure, SameSite=None, Path=/api/auth, Max-Age=7 days.
    *         content:
    *           application/json:
    *             schema:
    *               $ref: '#/components/schemas/AuthResponse'
    *       400:
-   *         $ref: '#/components/responses/ValidationError'
+   *         description: Invalid callback, missing or unverified email
+   *         content:
+   *           application/json:
+   *             schema:
+   *               oneOf:
+   *                 - $ref: '#/components/schemas/ValidationError'
+   *                 - $ref: '#/components/schemas/ErrorMessage'
    *       401:
    *         $ref: '#/components/responses/Unauthorized'
    *       429:
@@ -221,8 +239,8 @@ export function createAuthRouter(controller: AuthController): Router {
    */
   router.get(
     "/oauth/callback",
-    validate({ query: oauthCallbackQuery }),
     oauthCallbackLimiter,
+    validate({ query: oauthCallbackQuery }),
     controller.oauthCallback,
   );
 

@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { AppError } from "../../shared";
+import { AppError } from "../../domain/errors";
 
 export function errorMiddleware(
   err: unknown,
@@ -8,7 +8,9 @@ export function errorMiddleware(
   _next: NextFunction,
 ): void {
   if (err instanceof AppError) {
-    res.status(err.statusCode).json({ message: err.message });
+    res.status(err.statusCode).json(
+      err.details ? { message: err.message, details: err.details } : { message: err.message },
+    );
     return;
   }
 

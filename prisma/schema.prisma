@@ -34,5 +34,7 @@ model Post {
   updated_at DateTime @updatedAt 
   user_id String
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
 }

@@ -6,9 +6,10 @@ export const swaggerOptions: swaggerJsdoc.OAS3Options = {
     info: {
       title: "learn",
       version: "1.0.0",
-      description: "JWT auth, OAuth (VK, GitHub, Yandex) and posts.",
+      description:
+        "HTTPS API. JWT access token in the body, refresh token in an HttpOnly cookie. OAuth via VK, GitHub, Google (PKCE). Posts with page pagination.",
     },
-    servers: [{ url: "/" }],
+    servers: [{ url: "https://localhost:3000" }],
     tags: [
       { name: "Auth", description: "Email login, refresh, logout, OAuth" },
       { name: "Posts", description: "Create, read, update, delete posts" },
@@ -32,7 +33,7 @@ export const swaggerOptions: swaggerJsdoc.OAS3Options = {
         },
         OAuthProvider: {
           type: "string",
-          enum: ["vk", "github", "yandex"],
+          enum: ["vk", "github", "google"],
         },
         User: {
           type: "object",
@@ -73,6 +74,7 @@ export const swaggerOptions: swaggerJsdoc.OAS3Options = {
         },
         UpdatePost: {
           type: "object",
+          minProperties: 1,
           properties: {
             title: { type: "string", minLength: 5, maxLength: 100 },
             text: { type: "string", minLength: 90, maxLength: 1000 },
@@ -90,18 +92,43 @@ export const swaggerOptions: swaggerJsdoc.OAS3Options = {
             user_id: { type: "string", format: "uuid" },
           },
         },
+        PaginatedPosts: {
+          type: "object",
+          required: ["items", "page", "limit", "total", "pages"],
+          properties: {
+            items: {
+              type: "array",
+              items: { $ref: "#/components/schemas/Post" },
+            },
+            page: { type: "integer", example: 1 },
+            limit: { type: "integer", example: 20 },
+            total: { type: "integer", example: 42 },
+            pages: { type: "integer", example: 3 },
+          },
+        },
         ErrorMessage: {
           type: "object",
           required: ["message"],
           properties: {
             message: { type: "string", example: "Unauthorized" },
+            details: {
+              type: "array",
+              items: {
+                type: "object",
+                required: ["path", "message"],
+                properties: {
+                  path: { type: "string", example: "body.email" },
+                  message: { type: "string", example: "Invalid email" },
+                },
+              },
+            },
           },
         },
         ValidationError: {
           type: "object",
-          required: ["error", "details"],
+          required: ["message", "details"],
           properties: {
-            error: { type: "string", enum: ["validation"] },
+            message: { type: "string", example: "validation error" },
             details: {
               type: "array",
               items: {

@@ -1,3 +1,5 @@
+import { ITokenPair } from "../../dtos";
+
 export interface IRefreshTokenPayload {
   user_id: string;
   familyId: string;
@@ -12,6 +14,7 @@ export interface IRotatedRefreshToken {
 export interface ITokenService {
   generateAccessToken(user_id: string): string;
   generateRefreshToken(user_id: string, jti: string, familyId: string): Promise<string>;
+  issueTokenPair(user_id: string): Promise<ITokenPair>;
   verifyAccessToken(token: string): string | null;
   verifyRefreshToken(token: string): Promise<IRefreshTokenPayload | null>;
   rotateRefreshToken(token: string): Promise<IRotatedRefreshToken | null>;

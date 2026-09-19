@@ -1,19 +1,15 @@
-import {
-  IGetAccountData,
-  IGetAccountResponse,
-  IGithubOauthEmailsRes,
-  IGithubOauthTokenRes,
-  IGithubOauthUserRes,
-} from "../../../application/dtos";
-import { IOauthService } from "../../../application/ports/services";
+import { IGetAccountData, IGetAccountResponse } from "../../../application/dtos";
+import { IOauthProvider } from "../../../application/ports/services";
+import { AppError } from "../../../domain/errors";
 import {
   GITHUB_CALLBACK_URL,
   GITHUB_CLIENT_ID,
   GITHUB_CLIENT_SECRET,
 } from "../../../config/config";
-import { AppError } from "../../../shared";
+import { IGithubOauthEmailsRes, IGithubOauthTokenRes, IGithubOauthUserRes } from "../../types";
+import { fetchOauthJson } from "./http";
 
-export class GithubOauthService implements IOauthService {
+export class GithubOauthService implements IOauthProvider {
   getRedirectUrl(state: string, code_challenge: string): string {
     const params = new URLSearchParams({
       client_id: GITHUB_CLIENT_ID,
@@ -35,17 +31,15 @@ export class GithubOauthService implements IOauthService {
       code_verifier: data.code_verifier,
     });
 
-    const res = await fetch(`https://github.com/login/oauth/access_token`, {
+    const { ok, json } = await fetchOauthJson("https://github.com/login/oauth/access_token", {
       method: "POST",
-      headers: {
-        Accept: "application/json",
-      },
+      headers: { Accept: "application/json" },
       body,
     });
 
-    const tokenJson = (await res.json()) as IGithubOauthTokenRes;
+    const tokenJson = json as IGithubOauthTokenRes;
 
-    if (!res.ok || !tokenJson.access_token) throw new AppError("github token ex failed", 401);
+    if (!ok || !tokenJson.access_token) throw new AppError("github token exchange failed", 401);
 
     const githubHeaders = {
       Accept: "application/vnd.github+json",
@@ -54,42 +48,39 @@ export class GithubOauthService implements IOauthService {
       "X-GitHub-Api-Version": "2022-11-28",
     };
 
-    const userRes = await fetch("https://api.github.com/user", { headers: githubHeaders });
+    const userResult = await fetchOauthJson("https://api.github.com/user", {
+      headers: githubHeaders,
+    });
 
-    const user = (await userRes.json()) as IGithubOauthUserRes;
+    const user = userResult.json as IGithubOauthUserRes;
 
-    if (!userRes.ok) {
+    if (!userResult.ok) {
       throw new AppError("GitHub user request failed", 401);
     }
 
-    let email = user.email;
+    const emailsResult = await fetchOauthJson("https://api.github.com/user/emails", {
+      headers: githubHeaders,
+    });
 
-    if (!email) {
-      const emailsRes = await fetch("https://api.github.com/user/emails", {
-        headers: githubHeaders,
-      });
+    const emails = emailsResult.json as Array<IGithubOauthEmailsRes>;
 
-      const emails = (await emailsRes.json()) as Array<IGithubOauthEmailsRes>;
-
-      if (!emailsRes.ok) {
-        throw new AppError("GitHub email request failed", 401);
-      }
-
-      const chosen =
-        emails.find((item) => item.primary && item.verified) ??
-        emails.find((item) => item.verified);
-
-      email = chosen?.email ?? null;
+    if (!emailsResult.ok || !Array.isArray(emails)) {
+      throw new AppError("GitHub email request failed", 401);
     }
 
-    if (!email) {
+    const chosen =
+      emails.find((item) => item.primary && item.verified) ??
+      emails.find((item) => item.verified);
+
+    if (!chosen?.email) {
       throw new AppError("GitHub email is missing", 400);
     }
 
     return {
       provider: "github",
       provider_account_id: String(user.id),
-      email,
+      email: chosen.email,
+      email_verified: true,
     };
   }
 }

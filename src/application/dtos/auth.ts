@@ -1,11 +1,4 @@
-import { JwtPayload } from "jsonwebtoken";
 import { IUser } from "../../domain/entities";
-
-export interface JWTPayload extends JwtPayload {
-  user_id: string;
-  jti: string;
-  familyId: string;
-}
 
 export interface IRegisterData {
   email: string;
@@ -21,4 +14,9 @@ export interface IAuthResult {
   accessToken: string;
   refreshToken: string;
   user: IUser;
+}
+
+export interface ITokenPair {
+  accessToken: string;
+  refreshToken: string;
 }

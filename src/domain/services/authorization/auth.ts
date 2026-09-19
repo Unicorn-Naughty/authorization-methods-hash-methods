@@ -1,7 +1,8 @@
-import { IRegisterData, IAuthResult, ILoginData } from "../../../application/dtos";
+import { IAuthResult, ILoginData, IRegisterData } from "../../../application/dtos";
 import { IUserRepository } from "../../../application/ports/repositories";
 import { IHashService, ITokenService } from "../../../application/ports/services";
-import { AppError } from "../../../shared";
+import { AppError } from "../../errors";
+import { normalizeEmail } from "../../utils/email";
 
 export class AuthService {
   constructor(
@@ -11,25 +12,21 @@ export class AuthService {
   ) {}
 
   async register(data: IRegisterData): Promise<IAuthResult> {
-    const existingUser = await this.userRepo.findByEmail(data.email);
+    const email = normalizeEmail(data.email);
+    const existingUser = await this.userRepo.findByEmail(email);
 
     if (existingUser) throw new AppError("User already exists", 400);
 
     const hashedPass = await this.hashService.hash(data.password);
+    const user = await this.userRepo.create({ email, password: hashedPass });
+    const tokens = await this.tokenService.issueTokenPair(user.id);
 
-    const user = await this.userRepo.create({ ...data, password: hashedPass });
-
-    const familyId = crypto.randomUUID();
-    const jti = crypto.randomUUID();
-
-    const accessToken = this.tokenService.generateAccessToken(user.id);
-    const refreshToken = await this.tokenService.generateRefreshToken(user.id, jti, familyId);
-
-    return { accessToken, refreshToken, user };
+    return { ...tokens, user };
   }
 
   async login(data: ILoginData): Promise<IAuthResult> {
-    const user = await this.userRepo.findByEmail(data.email);
+    const email = normalizeEmail(data.email);
+    const user = await this.userRepo.findByEmail(email);
 
     if (!user || !user.password) throw new AppError("invalid credentials", 401);
 
@@ -37,13 +34,9 @@ export class AuthService {
 
     if (!checkCompare) throw new AppError("invalid credentials", 401);
 
-    const familyId = crypto.randomUUID();
-    const jti = crypto.randomUUID();
+    const tokens = await this.tokenService.issueTokenPair(user.id);
 
-    const accessToken = this.tokenService.generateAccessToken(user.id);
-    const refreshToken = await this.tokenService.generateRefreshToken(user.id, jti, familyId);
-
-    return { accessToken, refreshToken, user: { id: user.id, email: user.email } };
+    return { ...tokens, user: { id: user.id, email: user.email } };
   }
 
   async refresh(refreshToken: string) {
@@ -55,10 +48,8 @@ export class AuthService {
 
     if (!user) throw new AppError("User not found", 404);
 
-    const aToken = this.tokenService.generateAccessToken(user.id);
-
     return {
-      accessToken: aToken,
+      accessToken: this.tokenService.generateAccessToken(user.id),
       refreshToken: rotated.refreshToken,
     };
   }

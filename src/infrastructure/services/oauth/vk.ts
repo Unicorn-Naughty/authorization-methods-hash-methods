@@ -1,12 +1,9 @@
-import {
-  IGetAccountResponse,
-  IGetVKAccountData,
-  IGetVKAccountResponse,
-  IGetVKAccountUserResponse,
-} from "../../../application/dtos";
-import { IOauthService } from "../../../application/ports/services";
+import { IGetAccountData, IGetAccountResponse } from "../../../application/dtos";
+import { AppError } from "../../../domain/errors";
+import { IOauthProvider } from "../../../application/ports/services";
 import { VK_CALLBACK_URL, VK_ID, VK_SERVICE_KEY } from "../../../config/config";
-import { AppError } from "../../../shared";
+import { IGetVKAccountResponse, IGetVKAccountUserResponse } from "../../types/oauth";
+import { fetchOauthJson } from "./http";
 
 type VkErrorBody = {
   error: string;
@@ -20,7 +17,7 @@ function isVkError(data: unknown): data is VkErrorBody {
 }
 
 async function postForm(url: string, body: URLSearchParams): Promise<unknown> {
-  const res = await fetch(url, {
+  const { ok, json } = await fetchOauthJson(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -28,25 +25,18 @@ async function postForm(url: string, body: URLSearchParams): Promise<unknown> {
     body,
   });
 
-  let json: unknown;
-  try {
-    json = await res.json();
-  } catch {
-    throw new AppError("invalid vk response", 502);
-  }
-
   if (isVkError(json)) {
-    throw new AppError(json.error_description ?? json.error, 401);
+    throw new AppError("vk oauth failed", 401);
   }
 
-  if (!res.ok) {
+  if (!ok) {
     throw new AppError("vk oauth failed", 401);
   }
 
   return json;
 }
 
-export class VKOuathService implements IOauthService {
+export class VKOauthService implements IOauthProvider {
   getRedirectUrl(state: string, code_challenge: string): string {
     const params = new URLSearchParams({
       response_type: "code",
@@ -60,15 +50,15 @@ export class VKOuathService implements IOauthService {
     return `https://id.vk.ru/authorize?${params.toString()}`;
   }
 
-  async getAccount(data: IGetVKAccountData): Promise<IGetAccountResponse> {
+  async getAccount(data: IGetAccountData): Promise<IGetAccountResponse> {
     const tokenBody = new URLSearchParams({
       grant_type: "authorization_code",
       code_verifier: data.code_verifier,
       redirect_uri: VK_CALLBACK_URL,
       code: data.code,
       client_id: VK_ID,
-      device_id: data.device_id,
-      state: data.state,
+      device_id: data?.device_id ?? "",
+      state: data?.state ?? "",
       service_token: VK_SERVICE_KEY,
     });
 
@@ -103,6 +93,7 @@ export class VKOuathService implements IOauthService {
       email: userJson.user.email,
       provider: "vk",
       provider_account_id: String(tokenJson.user_id),
+      email_verified: true,
     };
   }
 }

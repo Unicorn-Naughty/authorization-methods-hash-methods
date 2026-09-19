@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Provider } from "../../../application/ports/services";
+import { OAUTH_PROVIDERS } from "../../../application/ports/services";
 
 export const credentialsRules = z.object({
   email: z.email(),
@@ -7,7 +7,7 @@ export const credentialsRules = z.object({
 });
 
 export const oauthLoginRules = z.object({
-  provider: z.enum(Provider),
+  provider: z.enum(OAUTH_PROVIDERS),
 });
 
 export const oauthCallbackQuery = z.object({
